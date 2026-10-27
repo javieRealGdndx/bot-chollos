@@ -65,17 +65,20 @@ def enviar_telegram(texto: str) -> None:
 
 
 def descuento_en_texto(texto: str):
-    m = re.search(r"-?\s?(\d{2,3})\s?%", texto)
-    if m:
+    # Porcentaje solo si va como descuento: "-90%", "dto 90%", "descuento de 90%"
+    m = re.search(r"(?:(?<!\w)-|dto\.?|descuento(?: de)?)\s?(\d{2,3})\s?%", texto, re.I)
+    if m and int(m.group(1)) < 100:
         return int(m.group(1))
-    precios = []
-    for p in re.findall(r"(\d[\d.]*(?:,\d+)?)\s?€", texto):
-        try:
-            precios.append(float(p.replace(".", "").replace(",", ".")))
-        except ValueError:
-            pass
-    if len(precios) >= 2 and max(precios) > 0:
-        return round((1 - min(precios) / max(precios)) * 100)
+    # Dos precios solo si el título indica cuál es el precio anterior
+    if re.search(r"\b(antes|pvp|valorado|precio habitual)\b", texto, re.I):
+        precios = []
+        for p in re.findall(r"(\d[\d.]*(?:,\d+)?)\s?€", texto):
+            try:
+                precios.append(float(p.replace(".", "").replace(",", ".")))
+            except ValueError:
+                pass
+        if len(precios) >= 2 and max(precios) > 0:
+            return round((1 - min(precios) / max(precios)) * 100)
     return None
 
 
@@ -138,6 +141,11 @@ def main() -> None:
         except Exception as ex:
             print("Error:", ex)
         time.sleep(INTERVALO_SEGUNDOS)
+
+
+if __name__ == "__main__":
+    main()
+
 
 
 if __name__ == "__main__":
